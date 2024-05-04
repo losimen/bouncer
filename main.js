@@ -1,10 +1,11 @@
 const CANVAS = document.getElementById('myCanvas')
 const BALL_RADIUS = 69
-const BALL_SPEED = 30
-
+const BALL_SPEED = 1000
+const MAIN_BALL_INDEX = 0
 
 class Game {
     mainBall
+    entities = []
 }
 
 const game =  new Game()
@@ -26,6 +27,13 @@ class V2 {
     scale (s) {
         return new V2(this.x * s, this.y * s)
     }
+
+    rotate (angle) {
+        return new V2(
+            Math.cos(angle) * this.x - Math.sin(angle) * this.y,
+            Math.sin(angle) * this.x + Math.cos(angle) * this.y,
+        )
+    }
 }
 
 class Ball {
@@ -37,14 +45,14 @@ class Ball {
         this.color = color
     }
 
-    drawCircle() {
+    draw() {
         this.context.beginPath();
         this.context.arc(this.center.x, this.center.y, this.radius, 0, 2 * Math.PI, false);
         this.context.fillStyle = this.color;
         this.context.fill();
     }
 
-    move (dt) {
+    update (dt) {
         const displacement = this.velocity.scale(dt)
         this.center = this.center.add(displacement)
     }
@@ -56,33 +64,68 @@ function setCanvasSize() {
     CANVAS.height = window.innerHeight
 }
 
+function ensureConsistentSpeed(velocity) {
+    const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+    const scalingFactor = BALL_SPEED / currentSpeed;
+    return velocity.scale(scalingFactor)
+}
+
+function borderService (entity) {
+    const randomAngle = Math.random() * 20 - 10; // Random angle between -10 and 10 degrees
+
+    if (0 > entity.center.x - entity.radius) {
+        entity.velocity = entity.velocity.rotate(randomAngle);
+        entity.velocity = new V2(Math.abs(entity.velocity.x), entity.velocity.y);
+        entity.velocity = ensureConsistentSpeed(entity.velocity);
+        return true;
+    }
+    
+    if (CANVAS.width < entity.center.x + entity.radius) {
+        entity.velocity = entity.velocity.rotate(randomAngle);
+        entity.velocity = new V2(-Math.abs(entity.velocity.x), entity.velocity.y);
+        entity.velocity = ensureConsistentSpeed(entity.velocity);
+        return true;
+    }
+    
+    if (CANVAS.height < entity.center.y + entity.radius) {
+        entity.velocity = entity.velocity.rotate(randomAngle);
+        entity.velocity = new V2(entity.velocity.x, -Math.abs(entity.velocity.y));
+        entity.velocity = ensureConsistentSpeed(entity.velocity);
+        return true;
+    }
+    
+    if (0 > entity.center.y - entity.radius) {
+        entity.velocity = entity.velocity.rotate(randomAngle);
+        entity.velocity = new V2(entity.velocity.x, Math.abs(entity.velocity.y));
+        entity.velocity = ensureConsistentSpeed(entity.velocity);
+        return true;
+    }
+    
+    return false;    
+}
+
 function update (context, dt) {
-    game.mainBall.move(dt)
-
-    if (0 > game.mainBall.center.x - game.mainBall.radius) {
-        game.mainBall.velocity = new V2(-game.mainBall.velocity.x, game.mainBall.velocity.y)
+    for (const entity of game.entities) {
+        entity.update(dt)
     }
 
-    if (CANVAS.width < game.mainBall.center.x + game.mainBall.radius) {
-        game.mainBall.velocity = new V2(-game.mainBall.velocity.x, game.mainBall.velocity.y)
+    for (const entity of game.entities) {
+        const didWork = borderService(entity)
+        // if (didWork && entity === game.entities[MAIN_BALL_INDEX]) {
+        //     console.log('do this')
+        // }
     }
 
-    if (CANVAS.height < game.mainBall.center.y + game.mainBall.radius) {
-        game.mainBall.velocity = new V2(game.mainBall.velocity.x, -game.mainBall.velocity.y)
+    for (const entity of game.entities) {
+        entity.draw();
     }
-
-    if (0 > game.mainBall.center.y - game.mainBall.radius) {
-        game.mainBall.velocity = new V2(game.mainBall.velocity.x, -game.mainBall.velocity.y)
-    }
-
-    game.mainBall.drawCircle();
 }
 
 function main () {
     setCanvasSize();
 
     const context = CANVAS.getContext("2d")
-    game.mainBall = new Ball(context, new V2(100, 100), 10, new V2(0, 500))
+    game.entities.push(new Ball(context, new V2(100, 100), 10, new V2(0, BALL_SPEED)))
     let start
 
     function gameLoop (timestamp) {
@@ -103,7 +146,7 @@ function main () {
 }
 
 window.addEventListener('mousemove', function (event) {
-    console.log(event.clientX, event.clientY)
+    // console.log(event.clientX, event.clientY)
     // game.mainBall.center = new V2(event.clientX, event.clientY)
 })
 
