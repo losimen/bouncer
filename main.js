@@ -2,12 +2,22 @@ const CANVAS = document.getElementById('myCanvas')
 const BALL_RADIUS = 69
 const BALL_SPEED = 400
 const MAIN_BALL_INDEX = 0
-const TAIL_LENGTH = 10
+const TAIL_LENGTH = 100
 let ghostIteration = 0
 
 class Game {
     mainBallPositions = []
     entities = []
+}
+
+class RGB {
+    r = 0
+    g = 0
+    b = 0 
+}
+
+function randRange (math, min) {
+    return Math.random() * math - min
 }
 
 const game =  new Game()
@@ -58,6 +68,8 @@ class V2 {
 }
 
 class MainBall {
+    alpha = 1
+
     constructor (context, center, radius, velocity, color = "green") {
         this.context = context
         this.center = center
@@ -96,10 +108,10 @@ class GhostBall {
         this.context.beginPath();
         this.context.arc(this.center.x, this.center.y, this.radius, 0, 2 * Math.PI, false);
 
-        this.context.fillStyle = `rgb(155, 102, 102, ${this.alpha})`;
+        this.context.fillStyle = this.color;
 
         this.context.fill();
-        this.alpha -= 0.06
+        this.alpha -= 0.01
         if (ghostIteration % TAIL_LENGTH === this.ghostIndex) {
             this.alpha = 1
         }   
@@ -114,12 +126,6 @@ class GhostBall {
     }
 }
 
-
-function setCanvasSize() {
-    CANVAS.width = window.innerWidth
-    CANVAS.height = window.innerHeight
-}
-
 function ensureConsistentSpeed(velocity) {
     const currentSpeed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
     const scalingFactor = BALL_SPEED / currentSpeed;
@@ -127,7 +133,7 @@ function ensureConsistentSpeed(velocity) {
 }
 
 function borderService (entity) {
-    const randomAngle = Math.random() * 20 - 10; // Random angle between -10 and 10 degrees
+    const randomAngle = randRange(20, 10)
 
     if (0 > entity.center.x - entity.radius) {
         entity.velocity = entity.velocity.rotate(randomAngle);
@@ -168,6 +174,15 @@ function update (context, dt) {
     for (const entity of game.entities) {
         if (entity === game.entities[MAIN_BALL_INDEX]) {
             const didWork = borderService(entity)
+            if (didWork) {
+                for (const entity of game.entities) {
+                    const r = randRange(0, 255)
+                    const g = randRange(0, 255)
+                    const b = randRange(0, 255)
+
+                    this.color = `${r} ${g} ${b} ${entity.alpha}`
+                }
+            }
         }
     }
 
@@ -186,13 +201,14 @@ function update (context, dt) {
 }
 
 function main () {
-    setCanvasSize();
+    CANVAS.width = window.innerWidth
+    CANVAS.height = window.innerHeight
 
     const context = CANVAS.getContext("2d")
-    game.entities.push(new MainBall(context, new V2(100, 100), 10, new V2(0, BALL_SPEED)))
+    game.entities.push(new MainBall(context, new V2(100, 100), 10, new V2(0, BALL_SPEED), 'rgb(255, 0, 0)'))
 
     for (let i = 0; i < TAIL_LENGTH; ++i) {
-        game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), i, 'blue'))
+        game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), i))
     }
 
     let start
