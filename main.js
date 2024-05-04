@@ -1,10 +1,12 @@
 const CANVAS = document.getElementById('myCanvas')
 const BALL_RADIUS = 69
-const BALL_SPEED = 300
+const BALL_SPEED = 400
 const MAIN_BALL_INDEX = 0
+const TAIL_LENGTH = 10
+let ghostIteration = 0
 
 class Game {
-    mainBall
+    mainBallPositions = []
     entities = []
 }
 
@@ -79,6 +81,8 @@ class MainBall {
 
 
 class GhostBall {
+    alpha = 1
+
     constructor (context, center, radius, velocity, ghostIndex, color = "green") {
         this.context = context
         this.center = center
@@ -91,24 +95,22 @@ class GhostBall {
     draw() {
         this.context.beginPath();
         this.context.arc(this.center.x, this.center.y, this.radius, 0, 2 * Math.PI, false);
-        this.context.fillStyle = this.color;
+
+        this.context.fillStyle = `rgb(155, 102, 102, ${this.alpha})`;
+
         this.context.fill();
+        this.alpha -= 0.06
+        if (ghostIteration % TAIL_LENGTH === this.ghostIndex) {
+            this.alpha = 1
+        }   
     }
 
     update(dt) {
-        console.log(this.ghostIndex, this.color, )
-        const followingBall = game.entities[this.ghostIndex]
-
-        if (this.ghostIndex === 0) {
-            this.velocity = new V2(-followingBall.velocity.x, -followingBall.velocity.y)
-        } else {
-            this.velocity = new V2(followingBall.velocity.x, followingBall.velocity.y)
+        if (game.mainBallPositions[this.ghostIndex] === undefined) {
+            return
         }
-        this.velocity = this.velocity.normalize()
-        this.center = new V2(
-            followingBall.center.x + this.velocity.x * 10,
-            followingBall.center.y + this.velocity.y * 10 
-        )
+
+        this.center = new V2(game.mainBallPositions[this.ghostIndex].center.x, game.mainBallPositions[this.ghostIndex].center.y)
     }
 }
 
@@ -172,6 +174,15 @@ function update (context, dt) {
     for (const entity of game.entities) {
         entity.draw();
     }
+
+    game.mainBallPositions[ghostIteration%TAIL_LENGTH] = {
+        center: new V2(
+            game.entities[MAIN_BALL_INDEX].center.x, 
+            game.entities[MAIN_BALL_INDEX].center.y
+        )
+    }
+
+    ghostIteration += 1
 }
 
 function main () {
@@ -179,11 +190,10 @@ function main () {
 
     const context = CANVAS.getContext("2d")
     game.entities.push(new MainBall(context, new V2(100, 100), 10, new V2(0, BALL_SPEED)))
-    game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), 0, 'red'))
-    game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), 1, 'blue'))
-    game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), 2, 'blue'))
-    game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), 3, 'blue'))
-    game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), 4, 'blue'))
+
+    for (let i = 0; i < TAIL_LENGTH; ++i) {
+        game.entities.push(new GhostBall(context, new V2(100, 100), 10, new V2(0, 0), i, 'blue'))
+    }
 
     let start
 
