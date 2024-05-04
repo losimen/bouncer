@@ -16,11 +16,11 @@ class V2 {
     }
 
     add (oth) {
-        return new V2(this.x + oth.x, this.y + oth.x)
+        return new V2(this.x + oth.x, this.y + oth.y)
     }
 
     sub (oth) {
-        return new V2(this.x + oth.x, this.y + oth.x)
+        return new V2(this.x + oth.x, this.y + oth.y)
     }
 
     scale (s) {
@@ -29,10 +29,11 @@ class V2 {
 }
 
 class Ball {
-    constructor (context, center, radius, color = "green") {
+    constructor (context, center, radius, velocity, color = "green") {
         this.context = context
         this.center = center
         this.radius = radius
+        this.velocity = velocity
         this.color = color
     }
 
@@ -43,9 +44,9 @@ class Ball {
         this.context.fill();
     }
 
-    move (dt, velocity) {
-        const displacement = velocity.scale(dt);
-        this.center = this.center.add(displacement);
+    move (dt) {
+        const displacement = this.velocity.scale(dt)
+        this.center = this.center.add(displacement)
     }
 }
 
@@ -55,10 +56,25 @@ function setCanvasSize() {
     CANVAS.height = window.innerHeight
 }
 
-let vel = new V2(100, 100)
 function update (context, dt) {
-    vel = vel.add(new V2(10, 10))
-    game.mainBall.move(dt, vel)
+    game.mainBall.move(dt)
+
+    if (0 > game.mainBall.center.x - game.mainBall.radius) {
+        game.mainBall.velocity = new V2(-game.mainBall.velocity.x, game.mainBall.velocity.y)
+    }
+
+    if (CANVAS.width < game.mainBall.center.x + game.mainBall.radius) {
+        game.mainBall.velocity = new V2(-game.mainBall.velocity.x, game.mainBall.velocity.y)
+    }
+
+    if (CANVAS.height < game.mainBall.center.y + game.mainBall.radius) {
+        game.mainBall.velocity = new V2(game.mainBall.velocity.x, -game.mainBall.velocity.y)
+    }
+
+    if (0 > game.mainBall.center.y - game.mainBall.radius) {
+        game.mainBall.velocity = new V2(game.mainBall.velocity.x, -game.mainBall.velocity.y)
+    }
+
     game.mainBall.drawCircle();
 }
 
@@ -66,7 +82,7 @@ function main () {
     setCanvasSize();
 
     const context = CANVAS.getContext("2d")
-    game.mainBall = new Ball(context, new V2(0, 0), 69)
+    game.mainBall = new Ball(context, new V2(100, 100), 10, new V2(0, 500))
     let start
 
     function gameLoop (timestamp) {
@@ -85,5 +101,10 @@ function main () {
 
     window.requestAnimationFrame(gameLoop)
 }
+
+window.addEventListener('mousemove', function (event) {
+    console.log(event.clientX, event.clientY)
+    // game.mainBall.center = new V2(event.clientX, event.clientY)
+})
 
 main()
